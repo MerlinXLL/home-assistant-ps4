@@ -15,6 +15,8 @@ from homeassistant.const import (
     CONF_NAME,
     CONF_REGION,
     CONF_TOKEN,
+    CONF_STATE,
+    STATE_OFF,
 )
 from homeassistant.util import location
 
@@ -32,6 +34,8 @@ PORT_MSG = {UDP_PORT: "port_987_bind_error", TCP_PORT: "port_997_bind_error"}
 
 PIN_LENGTH = 8
 
+UNKNOWN_STATE_DEFAULT = "Default"
+UNKNOWN_STATES = {UNKNOWN_STATE_DEFAULT: None, "Off": STATE_OFF}
 
 @config_entries.HANDLERS.register(DOMAIN)
 class PlayStation4FlowHandler(config_entries.ConfigFlow):
@@ -47,6 +51,7 @@ class PlayStation4FlowHandler(config_entries.ConfigFlow):
         self.name = None
         self.host = None
         self.region = None
+        self.unknown_state = None
         self.pin = None
         self.m_device = None
         self.location = None
@@ -148,6 +153,7 @@ class PlayStation4FlowHandler(config_entries.ConfigFlow):
             # Assume pin had leading zeros, before coercing to int.
             self.pin = str(user_input[CONF_CODE]).zfill(PIN_LENGTH)
             self.host = user_input[CONF_IP_ADDRESS]
+            self.unknown_state = UNKNOWN_STATES[user_input[CONF_STATE]]
 
             is_ready, is_login = await self.hass.async_add_executor_job(
                 self.helper.link, self.host, self.creds, self.pin, DEFAULT_ALIAS
@@ -162,6 +168,7 @@ class PlayStation4FlowHandler(config_entries.ConfigFlow):
                     CONF_HOST: self.host,
                     CONF_NAME: self.name,
                     CONF_REGION: self.region,
+                    CONF_STATE: self.unknown_state,
                 }
 
                 # Create entry.
@@ -190,6 +197,9 @@ class PlayStation4FlowHandler(config_entries.ConfigFlow):
             vol.Strip, vol.Length(max=PIN_LENGTH), vol.Coerce(int)
         )
         link_schema[vol.Required(CONF_NAME, default=DEFAULT_NAME)] = str
+        link_schema[vol.Required(CONF_STATE, default=UNKNOWN_STATE_DEFAULT)] = vol.In(
+            list(UNKNOWN_STATES.keys())
+        )
 
         return self.async_show_form(
             step_id="link", data_schema=vol.Schema(link_schema), errors=errors

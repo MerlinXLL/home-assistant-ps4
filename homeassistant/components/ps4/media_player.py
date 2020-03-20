@@ -24,6 +24,7 @@ from homeassistant.const import (
     CONF_NAME,
     CONF_REGION,
     CONF_TOKEN,
+    CONF_STATE,
     STATE_IDLE,
     STATE_PLAYING,
     STATE_STANDBY,
@@ -64,15 +65,16 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         host = device[CONF_HOST]
         region = device[CONF_REGION]
         name = device[CONF_NAME]
+        unknown_state = device.get(CONF_STATE, None)
         ps4 = pyps4.Ps4Async(host, creds, device_name=DEFAULT_ALIAS)
-        device_list.append(PS4Device(config, name, host, region, ps4, creds))
+        device_list.append(PS4Device(config, name, host, region, unknown_state, ps4, creds))
     async_add_entities(device_list, update_before_add=True)
 
 
 class PS4Device(MediaPlayerDevice):
     """Representation of a PS4."""
 
-    def __init__(self, config, name, host, region, ps4, creds):
+    def __init__(self, config, name, host, region, unknown_state, ps4, creds):
         """Initialize the ps4 device."""
         self._entry_id = config.entry_id
         self._ps4 = ps4
@@ -80,6 +82,7 @@ class PS4Device(MediaPlayerDevice):
         self._name = name
         self._region = region
         self._creds = creds
+        self._unknown_state = unknown_state
         self._state = None
         self._media_content_id = None
         self._media_title = None
@@ -227,7 +230,7 @@ class PS4Device(MediaPlayerDevice):
     def state_unknown(self):
         """Set states for state unknown."""
         self.reset_title()
-        self._state = None
+        self._state = self._unknown_state
         if self._disconnected is False:
             _LOGGER.warning("PS4 could not be reached")
         self._disconnected = True

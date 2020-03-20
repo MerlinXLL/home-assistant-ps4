@@ -21,7 +21,8 @@
           "region": "Region",
           "name": "Name",
           "code": "PIN",
-          "ip_address": "IP Address"
+          "ip_address": "IP Address",
+          "state": "Override unknown state to:"
         }
       }
     },
